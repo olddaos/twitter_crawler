@@ -1,50 +1,84 @@
-#! /usr/bin/perl
+package Queue; 
 
 use strict;
+use warnings;
+use base qw(Exporter);
 
-# TODO: переписать просто TwitterAPIExchange с PHP на Perl, и выбросить это дерьмо
- use Net::Twitter;
- use Scalar::Util 'blessed';
+use JSON;
 
+# Реализует методы простой файловой очереди с приоритетами 
 
-  my $consumer_key    = "2gitpWIwmwPPOtcNWKguQ";
-  my $consumer_secret = "N9qtivpjAC0OUNr7lLuwFphsk71GQ1cOzGojCSTL3Q";
-  my $token	      = "461020977-SD9qndn3iOYe3DdsAZzhBNor0s0ErNeu4hIFYYEv";
-  my $token_secret    = "prc9B5jf4wavhPsrDsxXToMheuGD045b9hUccVuF4jWEg";
+# На вход принимаем имя файла с очередь. Если оно пустое, то создаём тупо пустую очередь 
+  sub new {
+        my $class       = shift;
+        my $file_queue  = shift;
 
-  my $nt = Net::Twitter->new(
-      traits   => [qw/API::RESTv1_1/],
-      consumer_key        => $consumer_key,
-      consumer_secret     => $consumer_secret,
-      access_token        => $token,
-      access_token_secret => $token_secret,
-      ssl => 1
-  );
+	my $queue;
+	if ( defined $file_queue )
+	{
+		open FH, "< $file_queue" || die "Err: cannot construct Queue object. Queue file is missing\n";
+		my   ( $config_text, $config );
 
-  #my $result = $nt->update('Hello, world!');
+		while ( <FH> )
+		{
+			chomp;
+			$config_text .= $_;
+		}
 
-  my $high_water = 0;
-  eval {
-      my $statuses = $nt->home_timeline({  count => 100 });
-      for my $status ( @$statuses ) {
-          print "$status->{created_at} <$status->{user}{screen_name}> $status->{text}\n";
-      }
-  };
+		$queue  = decode_json $config_text;
+	}
+	else
+	{
+		$queue = [ ];
+	}
 
-
-   my @ids;
-    for ( my $cursor = -1, my $r; $cursor; $cursor = $r->{next_cursor} ) {
-        $r = $nt->followers_ids({ screen_name => 'kluchkovandrey', cursor => $cursor });
-        push @ids, @{ $r->{ids} };
-    }
-
-  print "Klychkov followers are : \n".join( " , ", @ids )."\n";
-
-  if ( my $err = $@ ) {
-      die $@ unless blessed $err && $err->isa('Net::Twitter::Error');
-
-      warn "HTTP Response Code: ", $err->code, "\n",
-           "HTTP Message......: ", $err->message, "\n",
-           "Twitter error.....: ", $err->error, "\n";
+        my $self = bless {
+                        queue   => $queue
+                   }, $class;
+        return  $self;
   }
 
+  sub is_empty
+  {
+	my $self 	= shift;
+	
+	return ( scalar @{ $self->{queue} } ) < 0;
+  }
+
+  # self->queue всегда сортирован по убыванию приоритетов ( т.к. у нас приоритет -- это outdegree, и мы хотим в первую очередь выкачивать узлы с большим outdegree )
+  sub put 
+  {
+	my $self        = shift;
+	my $item	= shift;
+	my $priority    = shift;
+	
+	push @{ $self->{queue} }, [ $item, $priority ]; 
+
+	my  @sorted = sort { $b->[1] <=> $a->[1] }
+	               		@{ $self->{queue} };	
+
+	@{ $self->{queue} }  =  @sorted;
+  }
+
+  # Возвращаем узлы по убыванию приоритетов
+  sub get
+  {
+	my $self                  = shift;
+	my $element		  = shift @{ $self->{queue} };
+
+	return $element;
+  }
+
+  sub serialize
+  {
+	my $self       = shift;
+	my $out_file   = shift;
+
+	my $config_str = encode_json $self->{queue};
+
+	open FH, "> $out_file" || die "Err: cannot open config for writing!\n";
+	print FH $config_str;
+
+	close FH;
+  }
+1;
