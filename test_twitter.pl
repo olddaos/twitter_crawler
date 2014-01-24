@@ -32,19 +32,25 @@ use strict;
   };
 
 
+  eval {
    my @ids;
     for ( my $cursor = -1, my $r; $cursor; $cursor = $r->{next_cursor} ) {
         $r = $nt->followers_ids({ screen_name => 'kluchkovandrey', cursor => $cursor });
+
+        #$r = $nt->followers_ids({ screen_name => '371846797', cursor => $cursor });
         push @ids, @{ $r->{ids} };
     }
 
   print "Klychkov followers are : \n".join( " , ", @ids )."\n";
+  };
 
   if ( my $err = $@ ) {
-      die $@ unless blessed $err && $err->isa('Net::Twitter::Error');
+      #die $@ unless blessed $err && $err->isa('Net::Twitter::Error');
 
       warn "HTTP Response Code: ", $err->code, "\n",
            "HTTP Message......: ", $err->message, "\n",
            "Twitter error.....: ", $err->error, "\n";
   }
+
+  print "Our app lives happily!\n";
 

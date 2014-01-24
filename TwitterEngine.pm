@@ -105,7 +105,7 @@ use base qw(Exporter);
                                 last if ! $exhaustive;
                         }
 
-                        print "Trc: $userid followers are : \n".join( " , ", @ids )."\n";
+                #        print "Trc: $userid followers are : \n".join( " , ", @ids )."\n";
 		};
 
 	$self->backoff( $extact_sub );

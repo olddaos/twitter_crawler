@@ -38,6 +38,13 @@ use JSON;
         return  $self;
   }
 
+  sub size
+  {
+	my $self        = shift;
+
+	return	scalar @{ $self->{queue} };
+  }
+
   sub is_empty
   {
 	my $self 	= shift;
