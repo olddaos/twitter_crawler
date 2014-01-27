@@ -48,8 +48,10 @@ use JSON;
   sub is_empty
   {
 	my $self 	= shift;
-	
-	return ( scalar @{ $self->{queue} } ) < 0;
+	my $amount =  ( scalar @{ $self->{queue} } );	
+
+	print "q amount is $amount\n";
+	return ( $amount <= 0 );
   }
 
   # self->queue всегда сортирован по убыванию приоритетов ( т.к. у нас приоритет -- это outdegree, и мы хотим в первую очередь выкачивать узлы с большим outdegree )
@@ -65,6 +67,16 @@ use JSON;
 	               		@{ $self->{queue} };	
 
 	@{ $self->{queue} }  =  @sorted;
+  }
+
+  # Puts with external consistent priority, do not sort
+  sub force_put 
+  {
+	my $self        = shift;
+	my $item	= shift;
+	my $priority    = shift;
+	
+	push @{ $self->{queue} }, [ $item, $priority ]; 
   }
 
   # Возвращаем узлы по убыванию приоритетов

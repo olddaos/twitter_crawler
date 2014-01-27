@@ -13,16 +13,17 @@ my $q	        = new Queue;
 my $engine      = new TwitterEngine( $machine );
 my $graph_store = new GraphStorage;
 
-#$q->put( 371846797, 1 );
+$q->force_put( 371846797, 1 );
 
-$q->put( 174953869, 1 );
+#$q->put( 174953869, 1 );
 
 my $fetch_exhaustive = 1;
 my $fetch_shallow    = 0;
 my $maxcount;
 my $process_limit    = 1048576;
 
-open FILEGRAPH, "> filegraph_174953869.csv" || die "Err: cannot open graph file\n";
+open FILEGRAPH, "> circle_filegraph.csv" || die "Err: cannot open graph file\n";
+open NODEATTR, "> node_attr.csv" || die "Err: cannot open node attributes file\n";
 
 # Store quee on Ctrl-C
 $SIG{'INT'} = sub {
@@ -31,9 +32,11 @@ $SIG{'INT'} = sub {
    $q->serialize("new_queue.json"); 
 
    close FILEGRAPH;
+   close NODEATTR;
    die "Err: written queue, then dead!\n" 
 };
 
+my $priority = 1;
 
 # Выбираем задания из очереди, пока она не пуста, либо пока не достигли счетчика
 while ( ! $q->is_empty() || $maxcount++ > $process_limit )
@@ -61,10 +64,14 @@ while ( ! $q->is_empty() || $maxcount++ > $process_limit )
 			map {
 				 my $follower = $_;
 
-				 $q->put( $follower->{id}, $follower->{followers_count} );
-				 print ".";
+				 if (( $follower->{location} eq "" ) || ( lc($follower->{location}) eq "moscow"))
+				 {
+					 $q->force_put( $follower->{id}, ++$priority );
+					 print ".";
+					 print NODEATTR qq($follower->{id}\t$follower->{screen_name}\t$follower->{followers_count}\t$follower->{friends_count}\t$follower->{status}->{created_at}\n);
+				 }
 				 #print "Trc: follower count $follower->{followers_count}, screen: $follower->{screen_name}\n";
-			    } @{ $lookup_result};
+			    } sort  { $b->{followers_count} <=> $a->{followers_count} } @{ $lookup_result};
 			# TODO: тут нужно организовать запихивание в очередь пар ( user_id, outdegree )
 			undef @chunk;
 			print "\n done chunk...\n";
