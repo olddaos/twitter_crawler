@@ -32,7 +32,7 @@ use base qw(Exporter);
 
         my ( $lookupres, $r );
         my $cursor      = -1;
-	my $sleep_delay = 30;
+	my $sleep_delay = 16;
         while ( ! $gotit && ( $try_counter++ < $max_tries))
         {
                 # The following is to replace try ( ) {...} catch in normal languages

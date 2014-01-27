@@ -66,8 +66,10 @@ sub ack {
 
 	foreach my $app ( @{ $self->{apps}} ) 
 	{	
+		   warn "\n rotating...\n";
 		   if ( $app->{status} )
 		   {
+		   	   warn "\n ROTATED!...\n";
 			   $had_active	         = 1;
 			   $self->{active_index} = $idx;
 			   return $app->{'appref'};
@@ -78,6 +80,8 @@ sub ack {
 
 	if ( ! $had_active )
 	{
+
+		   warn "\n EXHAUSTIVE rotating...\n";
 		   # Rotate apps in order to exploit failure times non-uniformity
 		   my $app = shift @{ $self->{apps}};
 		   push @{ $self->{apps}}, $app;
